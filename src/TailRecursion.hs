@@ -25,14 +25,17 @@ import Prelude hiding (lookup)
      ** your function should be tail recursive **
  -}
 
--- >>> assoc 0 "william" [("ranjit", 85), ("william",23), ("moose",44)])
+-- >>> assoc 0 "william" [("ranjit", 85), ("william",23), ("moose",44)]
 -- 23
 --
 -- >>> assoc 0 "bob" [("ranjit",85), ("william",23), ("moose",44)]
 -- 0
 
 assoc :: Int -> String -> [(String, Int)] -> Int
-assoc def key kvs = error "TBD:assoc"
+assoc def key [] = def
+assoc def key ((a,b) : xs)
+  | key == a  = b
+  | otherwise = assoc def key xs
 
 --------------------------------------------------------------------------------
 {- | `removeDuplicates l`
@@ -59,8 +62,11 @@ removeDuplicates l = reverse (helper [] l)
     helper seen []     = seen
     helper seen (x:xs) = helper seen' rest'
       where
-        seen'          = error "TBD:helper:seen"
-        rest'          = error "TBD:helper:rest"
+        seen'          = if (elem x seen) then helper seen xs else x : seen
+        rest'          = xs
+
+-- seen'          = if (elem x xs) then x : seen 
+-- rest'          = xs
 
 --------------------------------------------------------------------------------
 {- | `wwhile f x` returns `x'` where there exist values
@@ -78,8 +84,16 @@ removeDuplicates l = reverse (helper [] l)
 -- >>> let f x = let xx = x * x * x in (xx < 100, xx) in wwhile f 2
 -- 512
 
-wwhile :: (a -> (Bool, a)) -> a -> a
-wwhile f n = error "TBD:wwhile"
+wwhile :: (a -> (Bool, a)) -> a -> a 
+wwhile f n = case (f n) of
+  (False, fn) -> fn
+  (True, fn) -> wwhile f fn
+
+-- wwhile f n 
+--   | fst (f n) = wwhile f (snd (f n))
+--   | otherwise = snd (f n)
+
+-- doesn't work: wwhile (if fst (f n) then snd (wwhile f (snd (f n))) else n) (snd (f n)) 
 
 --------------------------------------------------------------------------------
 {- | The **fixpoint** of a function `f` starting at `x`
@@ -119,7 +133,9 @@ wwhile f n = error "TBD:wwhile"
   -}
 
 fixpointL :: (Int -> Int) -> Int -> [Int]
-fixpointL f x = error "TBD:fixpointL"
+fixpointL f x = x : (if x == (f x) then [] else fixpointL f (f x))
+  -- | _ x = x_0
+  -- | otherwise = x_{n+1}
 
 -- You should see the following behavior at the prompt:
 
@@ -155,7 +171,8 @@ collatz n
 fixpointW :: (Int -> Int) -> Int -> Int
 fixpointW f x = wwhile wwf x
  where
-   wwf        = error "TBD:fixpoint:wwf"
+   wwf :: Int -> (Bool, Int)
+   wwf x = (x /= (f x), (f x)) -- runs while loop until x_n and x_{n+1} are equal (condition for while loop to run: while not equal)
 
 -- >>> fixpointW collatz 1
 -- 1
