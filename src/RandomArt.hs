@@ -25,6 +25,10 @@ data Expr
   | Average Expr Expr
   | Times   Expr Expr
   | Thresh  Expr Expr Expr Expr
+  -- new datatype constructors
+  | Atan        Expr
+  | TripleAvg   Expr Expr Expr
+  | WeightAvg   Expr Expr Expr
   deriving (Show)
 
 --------------------------------------------------------------------------------
@@ -78,12 +82,16 @@ sampleExpr3 =
 
 exprToString :: Expr -> String
 exprToString VarX                 = "x"
-exprToString VarY                 = error "TBD:VarY"
-exprToString (Sine e)             = error "TBD:Sin"
-exprToString (Cosine e)           = error "TBD:Cos"
-exprToString (Average e1 e2)      = error "TBD:Avg"
-exprToString (Times e1 e2)        = error "TBD:Times"
-exprToString (Thresh e1 e2 e3 e4) = error "TBD:Thresh"
+exprToString VarY                 = "y"
+exprToString (Sine e)             = "sin(pi*" ++ exprToString e ++ ")"
+exprToString (Cosine e)           = "cos(pi*" ++ exprToString e ++ ")"
+exprToString (Average e1 e2)      = "((" ++ exprToString e1 ++ "+" ++ exprToString e2 ++ ")/2)"
+exprToString (Times e1 e2)        = exprToString e1 ++ "*" ++ exprToString e2
+exprToString (Thresh e1 e2 e3 e4) = "(" ++ exprToString e1 ++ "<" ++ exprToString e2 ++ "?" ++ exprToString e3 ++ ":" ++ exprToString e4 ++ ")"
+-- new datatypes
+exprToString (Atan e)             = "(atan(pi*" ++ exprToString e ++ ")/2)"
+exprToString (TripleAvg e1 e2 e3) = "((" ++ exprToString e1 ++ "+" ++ exprToString e2 ++ "+" ++ exprToString e3 ++ ")/3)"
+exprToString (WeightAvg e1 e2 e3) = "(abs(" ++ exprToString e1 ++ ")*(" ++ exprToString e2 ++ ")+(1-abs(" ++ exprToString e1 ++ "))*(" ++ exprToString e3 ++ "))"
 
 --------------------------------------------------------------------------------
 -- | Evaluating Expressions at a given X, Y co-ordinate ------------------------
@@ -99,7 +107,18 @@ exprToString (Thresh e1 e2 e3 e4) = error "TBD:Thresh"
 -- 0.8090169943749475
 
 eval :: Double -> Double -> Expr -> Double
-eval x y e = error "TBD:eval"
+eval x y e = case e of
+  (VarX) -> x
+  (VarY) -> y
+  (Sine e) -> sin(pi*(eval x y e))
+  (Cosine e) -> cos(pi*(eval x y e))
+  (Average e1 e2) -> ((eval x y e1) + (eval x y e2)) / 2
+  (Times e1 e2) -> (eval x y e1) * (eval x y e2)
+  (Thresh e1 e2 e3 e4) -> if (eval x y e1) < (eval x y e2) then (eval x y e3) else (eval x y e4)
+  -- new datatypes
+  (Atan e) -> atan(pi*(eval x y e)) / 2 -- dividing by 2 to keep arctan within range [-1,1] for domain [-1,1]
+  (TripleAvg e1 e2 e3) -> ((eval x y e1) + (eval x y e2) + (eval x y e3)) / 3
+  (WeightAvg e1 e2 e3) -> (abs (eval x y e1)) * (eval x y e2) + (1 - abs (eval x y e1)) * (eval x y e3)
 
 evalFn :: Double -> Double -> Expr -> Double
 evalFn x y e = assert (-1.0 <= rv && rv <= 1.0) rv
@@ -138,7 +157,17 @@ build 0
   | otherwise = VarY
   where
     r         = rand 10
-build d       = error "TBD:build"
+build d
+  | r <= 2    = Sine (build (d-1))
+  | r <= 4    = Cosine (build (d-1))
+  | r <= 5    = Average (build (d-1)) (build (d-1))
+  | r <= 6    = Times (build (d-1)) (build (d-1))
+  | r <= 7    = Thresh (build (d-1)) (build (d-1)) (build (d-1)) (build (d-1))
+  -- new datatypes
+  | r <= 9    = Atan (build (d-1))
+  | otherwise = WeightAvg (build (d-1)) (build (d-1)) (build (d-1))
+  where
+    r         = rand 10
 
 --------------------------------------------------------------------------------
 -- | Best Image "Seeds" --------------------------------------------------------
@@ -146,16 +175,16 @@ build d       = error "TBD:build"
 
 -- grayscale
 g1, g2, g3 :: (Int, Int)
-g1 = (error "TBD:depth1", error "TBD:seed1")
-g2 = (error "TBD:depth2", error "TBD:seed2")
-g3 = (error "TBD:depth3", error "TBD:seed3")
+g1 = (8, 12)
+g2 = (9, 7)
+g3 = (10, 2)
 
 
 -- grayscale
 c1, c2, c3 :: (Int, Int)
-c1 = (error "TBD:depth1", error "TBD:seed1")
-c2 = (error "TBD:depth2", error "TBD:seed2")
-c3 = (error "TBD:depth3", error "TBD:seed3")
+c1 = (8, 6)
+c2 = (9, 10)
+c3 = (9, 7)-- (error "TBD:depth3", error "TBD:seed3")
 
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
